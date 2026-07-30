@@ -11,6 +11,7 @@ export class Terminal {
         this.audio = audio;
         
         this.setupThemeSelector();
+        this.setupMobileInput();
         
         // Typing sound on keypress
         if (this.input && this.audio) {
@@ -37,6 +38,28 @@ export class Terminal {
         if (saved) {
             document.documentElement.setAttribute('data-theme', saved);
         }
+    }
+    
+    setupMobileInput() {
+        if (!this.input || !this.screen) return;
+        
+        // Focus input on any tap/click on screen
+        this.screen.addEventListener('touchstart', (e) => {
+            if (e.target !== this.input) {
+                this.focusInput();
+            }
+        }, { passive: true });
+        
+        this.screen.addEventListener('click', (e) => {
+            if (e.target !== this.input) {
+                this.focusInput();
+            }
+        });
+        
+        // Ensure input stays focused
+        this.input.addEventListener('blur', () => {
+            setTimeout(() => this.focusInput(), 100);
+        });
     }
     
     print(text, type = '') {

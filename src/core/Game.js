@@ -130,6 +130,17 @@ export class Game {
                 }
             }
         });
+        
+        // Mobile: handle virtual keyboard "Go" button
+        this.terminal.input.addEventListener('keyup', (e) => {
+            if (e.key === 'Enter' || e.keyCode === 13) {
+                const cmd = this.terminal.getInputValue();
+                if (cmd) {
+                    this.processCommand(cmd);
+                    this.terminal.clearInput();
+                }
+            }
+        });
     }
     
     // ========== WELCOME ==========

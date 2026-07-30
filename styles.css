@@ -210,12 +210,15 @@ body {
     border-top: 1px solid var(--primary);
     padding-top: 10px;
     position: relative;
+    min-height: 44px; /* Touch-friendly */
 }
 
 .prompt {
     color: var(--primary);
     white-space: nowrap;
     text-shadow: 0 0 5px var(--shadow);
+    user-select: none;
+    -webkit-user-select: none;
 }
 
 #command-input {
@@ -228,6 +231,27 @@ body {
     flex: 1;
     caret-color: var(--primary);
     text-shadow: 0 0 3px var(--shadow);
+    min-height: 44px;
+    padding: 8px 0;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+}
+
+/* Ensure input is clickable on mobile */
+#command-input:focus {
+    outline: none;
+    box-shadow: none;
+}
+
+/* Touch-friendly area around input */
+#input-line::after {
+    content: '';
+    position: absolute;
+    top: -10px;
+    left: 0;
+    right: 0;
+    bottom: -10px;
+    z-index: -1;
 }
 
 /* Cursor */
@@ -535,12 +559,18 @@ body {
 @media (max-width: 768px) {
     body {
         font-size: 14px;
+        overflow: auto; /* Allow scrolling on mobile */
+    }
+    
+    #screen {
+        padding: 10px;
+        transform: none; /* Remove scale on mobile */
     }
     
     #header {
-        font-size: 18px;
+        font-size: 16px;
         flex-direction: column;
-        gap: 10px;
+        gap: 8px;
     }
     
     #stats-bar {
@@ -549,12 +579,22 @@ body {
     }
     
     .hack-target {
-        font-size: 32px;
-        letter-spacing: 5px;
+        font-size: 28px;
+        letter-spacing: 3px;
     }
     
     #theme-selector {
         opacity: 0.7;
+    }
+    
+    #command-input {
+        font-size: 16px;
+        min-height: 48px;
+    }
+    
+    /* Ensure terminal is scrollable on mobile */
+    #output {
+        min-height: 50vh;
     }
 }
 
