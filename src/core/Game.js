@@ -134,7 +134,13 @@ export class Game {
     
     // ========== WELCOME ==========
     
-    showWelcome() {
+    async showWelcome() {
+        const isNewPlayer = !GameState.load();
+        
+        if (isNewPlayer) {
+            await this.terminal.bootSequence();
+        }
+        
         const art = `
     ██╗  ██╗ █████╗  ██████╗██╗  ██╗███████╗██████╗ 
     ██║  ██║██╔══██╗██╔════╝██║  ██║██╔════╝██╔══██╗
@@ -252,6 +258,22 @@ export class Game {
                 const enabled = this.audio.toggle();
                 this.terminal.print(`Sound ${enabled ? 'enabled' : 'disabled'}.`, 'info');
                 break;
+            case 'theme':
+                if (args[0]) {
+                    const validThemes = ['green', 'amber', 'cyan', 'red', 'white', 'pink'];
+                    if (validThemes.includes(args[0])) {
+                        document.documentElement.setAttribute('data-theme', args[0]);
+                        localStorage.setItem('hackerTerminal_theme', args[0]);
+                        this.terminal.print(`Theme set to ${args[0]}.`, 'success');
+                    } else {
+                        this.terminal.print(`Invalid theme. Available: ${validThemes.join(', ')}`, 'error');
+                    }
+                } else {
+                    const current = document.documentElement.getAttribute('data-theme') || 'green';
+                    this.terminal.print(`Current theme: ${current}`, 'info');
+                    this.terminal.print('Available: green, amber, cyan, red, white, pink', 'dim');
+                }
+                break;
             case 'clear': this.terminal.clear(); break;
             default:
                 this.terminal.print(`Unknown command: ${command}. Type "help" for commands.`, 'error');
@@ -275,6 +297,7 @@ export class Game {
         this.terminal.print('  virus <cmd>       Deploy viruses (create/list/catalog)');
         this.terminal.print('  map               ASCII network topology');
         this.terminal.print('  skill [unlock <id>]  Skill tree');
+        this.terminal.print('  theme [name]      Change color theme');
         this.terminal.print('  sound             Toggle audio');
         this.terminal.print('  save              Manual save');
         this.terminal.print('  export            Export save code');
@@ -394,6 +417,8 @@ export class Game {
         this.terminal.print(`Target difficulty: ${Math.floor(server.difficulty * (this._eventMultiplier || 1))} | Your power: ${power.toFixed(1)}`, 'dim');
         this.terminal.print('');
         
+        this.terminal.glitchScreen(300);
+        
         const won = await this.minigame.run(server, this.player.hardware, this._skillBonuses);
         
         if (won) {
@@ -416,6 +441,8 @@ export class Game {
             }
             
             this.audio.success();
+            this.terminal.flashSuccess();
+            this.terminal.chromatic(400);
             
             // Stats
             const hackTime = Date.now() - hackStart;
@@ -459,7 +486,9 @@ export class Game {
         } else {
             this.player.consecutiveSuccess = 0;
             this.audio.failure();
-            this.terminal.print('');
+            this.terminal.flashError();
+            this.terminal.shakeScreen(500);
+            this.terminal.chromatic(600);
             this.terminal.print(`╔══ HACK FAILED ═══════════════════════════════════╗`, 'error');
             this.terminal.print(`  Countermeasures activated!`, 'error');
             this.terminal.print(`  Security traced your location.`, 'error');

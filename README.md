@@ -19,6 +19,7 @@ You are a hacker operative with ROOT access. Hack servers, upgrade your hardware
 - `achievements` - View achievement progress
 - `story` - Narrative overview
 - `skill [unlock <id>]` - Skill tree
+- `theme [green|amber|cyan|red|white|pink]` - Change CRT color theme
 - `sound` - Toggle audio
 - `save` / `export` / `import <code>` - Save management
 - `clear` - Clear terminal
@@ -56,7 +57,15 @@ Available skills:
 ### Secret Commands 🤫
 Try these: `matrix`, `konami`, `self-destruct`, `hack the planet`, `hello friend`, `1337`, `godmode`
 
-## 🎯 Features
+## 🎨 Visual Features
+
+- **6 CRT Color Themes** - Green (default), Amber, Cyan, Red, White, Pink
+- **Advanced CRT Effects** - Scanlines, moving scanline, barrel distortion, vignette, noise, flicker
+- **Visual Effects** - Screen shake, chromatic aberration, glitch effects, flash on success/failure
+- **Boot Sequence** - BIOS-style boot animation for new players
+- **Animated UI** - Pulsing stats, glitching borders, glowing inputs
+
+## 🎯 Game Features
 
 - **10 Hackable Servers** - From coffee shop WiFi to quantum computers
 - **Typing Minigames** - Time-based word challenges during hacks
@@ -90,21 +99,21 @@ python3 -m http.server 8080
 - ES6 Modules
 - Web Audio API for synthesized sound effects
 - No frameworks needed
-- CRT effects via CSS
+- Advanced CSS CRT effects (vignette, chromatic aberration, noise)
 
 ## 📁 Structure
 
 ```
 hacker-terminal/
 ├── index.html              # Main screen
-├── styles.css              # CRT effects & terminal styling
+├── styles.css              # CRT effects, themes, animations
 ├── app.js                  # Entry point
 ├── README.md
 └── src/
     ├── core/
     │   ├── Game.js         # Main game controller
     │   ├── GameState.js    # Save/load system
-    │   └── Terminal.js     # DOM interaction
+    │   └── Terminal.js     # DOM interaction, visual effects
     ├── systems/
     │   ├── AchievementSystem.js
     │   ├── MissionSystem.js

@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="green">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,6 +7,16 @@
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
+    <!-- Theme Selector -->
+    <div id="theme-selector">
+        <div class="theme-btn" data-theme="green" title="Phosphor Green"></div>
+        <div class="theme-btn" data-theme="amber" title="Amber"></div>
+        <div class="theme-btn" data-theme="cyan" title="Cyan"></div>
+        <div class="theme-btn" data-theme="red" title="Red Alert"></div>
+        <div class="theme-btn" data-theme="white" title="Phosphor White"></div>
+        <div class="theme-btn" data-theme="pink" title="Cyberpunk"></div>
+    </div>
+
     <div id="crt-container">
         <div id="screen">
             <div id="header">
@@ -27,8 +37,13 @@
                 <span class="cursor">█</span>
             </div>
         </div>
+        
+        <!-- CRT Effects -->
         <div class="scanline"></div>
+        <div class="scanline-moving"></div>
         <div class="crt-flicker"></div>
+        <div class="vignette"></div>
+        <div class="noise"></div>
     </div>
     
     <!-- Minigame Overlay -->
@@ -40,7 +55,7 @@
         <div class="progress-bar-container">
             <div class="progress-bar"></div>
         </div>
-        <div style="font-size: 14px; margin-top: 10px; color: #0a0;">Press ESC to abort</div>
+        <div style="font-size: 14px; margin-top: 10px; color: var(--primary-dim);">Press ESC to abort</div>
     </div>
     
     <!-- Achievement Popup -->
