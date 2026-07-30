@@ -3,14 +3,22 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TERMINAL // HACKER</title>
+    <title>HACKER TERMINAL v2.0</title>
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
     <div id="crt-container">
         <div id="screen">
             <div id="header">
-                <span class="blink">█</span> ROOT@SYSTEM:~# ./hacknet
+                <div>
+                    <span class="blink">█</span> ROOT@HACKNET:~#
+                </div>
+                <div id="stats-bar">
+                    <span class="stat-item">₿ 0</span>
+                    <span class="stat-item">LVL 1</span>
+                    <span class="stat-item">REP 0</span>
+                    <span class="stat-item">HACKS 0</span>
+                </div>
             </div>
             <div id="output"></div>
             <div id="input-line">
@@ -22,6 +30,25 @@
         <div class="scanline"></div>
         <div class="crt-flicker"></div>
     </div>
-    <script src="app.js"></script>
+    
+    <!-- Minigame Overlay -->
+    <div id="minigame-overlay">
+        <div class="minigame-title">BREACH PROTOCOL</div>
+        <div>Type the code to bypass security:</div>
+        <div class="hack-target">ROOT</div>
+        <input type="text" class="hack-input" autocomplete="off" spellcheck="false">
+        <div class="progress-bar-container">
+            <div class="progress-bar"></div>
+        </div>
+        <div style="font-size: 14px; margin-top: 10px; color: #0a0;">Press ESC to abort</div>
+    </div>
+    
+    <!-- Achievement Popup -->
+    <div id="achievement-popup">
+        <div class="achievement-title">🏆 Achievement Unlocked</div>
+        <div class="achievement-desc">Description here</div>
+    </div>
+    
+    <script type="module" src="app.js"></script>
 </body>
 </html>
