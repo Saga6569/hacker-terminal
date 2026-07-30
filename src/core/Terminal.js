@@ -45,20 +45,15 @@ export class Terminal {
         
         // Focus input on any tap/click on screen
         this.screen.addEventListener('touchstart', (e) => {
-            if (e.target !== this.input) {
+            if (e.target !== this.input && e.target.tagName !== 'BUTTON') {
                 this.focusInput();
             }
         }, { passive: true });
         
         this.screen.addEventListener('click', (e) => {
-            if (e.target !== this.input) {
+            if (e.target !== this.input && e.target.tagName !== 'BUTTON') {
                 this.focusInput();
             }
-        });
-        
-        // Ensure input stays focused
-        this.input.addEventListener('blur', () => {
-            setTimeout(() => this.focusInput(), 100);
         });
     }
     

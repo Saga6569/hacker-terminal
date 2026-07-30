@@ -121,26 +121,17 @@ export class Game {
     }
     
     setupInput() {
-        this.terminal.input.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter') {
+        const form = document.getElementById('input-form');
+        if (form) {
+            form.addEventListener('submit', (e) => {
+                e.preventDefault();
                 const cmd = this.terminal.getInputValue();
                 if (cmd) {
                     this.processCommand(cmd);
                     this.terminal.clearInput();
                 }
-            }
-        });
-        
-        // Mobile: handle virtual keyboard "Go" button
-        this.terminal.input.addEventListener('keyup', (e) => {
-            if (e.key === 'Enter' || e.keyCode === 13) {
-                const cmd = this.terminal.getInputValue();
-                if (cmd) {
-                    this.processCommand(cmd);
-                    this.terminal.clearInput();
-                }
-            }
-        });
+            });
+        }
     }
     
     // ========== WELCOME ==========

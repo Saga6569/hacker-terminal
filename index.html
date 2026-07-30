@@ -31,11 +31,11 @@
                 </div>
             </div>
             <div id="output"></div>
-            <div id="input-line">
+            <form id="input-form" style="display: flex; align-items: center; gap: 8px; border-top: 1px solid var(--primary); padding-top: 10px;">
                 <span class="prompt">root@hacknet:~$</span>
-                <input type="text" id="command-input" autofocus autocomplete="off" spellcheck="false" inputmode="text" autocapitalize="none" autocorrect="off">
-                <span class="cursor">█</span>
-            </div>
+                <input type="text" id="command-input" autofocus autocomplete="off" spellcheck="false" inputmode="text" autocapitalize="none" autocorrect="off" style="flex: 1; background: transparent; border: none; color: var(--primary); font-family: 'VT323', monospace; font-size: 18px; outline: none; caret-color: var(--primary); text-shadow: 0 0 3px var(--shadow);">
+                <button type="submit" style="background: var(--primary); color: #000; border: none; font-family: 'VT323', monospace; font-size: 14px; padding: 4px 12px; cursor: pointer;">ENTER</button>
+            </form>
         </div>
         
         <!-- CRT Effects -->
