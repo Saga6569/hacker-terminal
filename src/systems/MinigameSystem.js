@@ -5,16 +5,17 @@
 import { HACK_WORDS } from '../data/Constants.js';
 
 export class MinigameSystem {
-    constructor(terminal) {
+    constructor(terminal, audio = null) {
         this.terminal = terminal;
+        this.audio = audio;
         this.overlay = document.getElementById('minigame-overlay');
         this.words = HACK_WORDS;
     }
     
-    async run(server, hardware) {
+    async run(server, hardware, skillBonuses = {}) {
         const difficulty = Math.min(server.difficulty, 10);
         const requiredWords = Math.min(Math.ceil(difficulty / 2) + 1, 5);
-        const timePerWord = Math.max(3000 - (hardware.cpu * 100), 1000);
+        const timePerWord = Math.max(3000 - (hardware.cpu * 100), 1000) * (skillBonuses.minigameTime || 1);
         
         return new Promise((resolve) => {
             let wordsTyped = 0;
@@ -41,6 +42,7 @@ export class MinigameSystem {
             };
             
             const onInput = () => {
+                if (this.audio) this.audio.keyHit();
                 if (input.value.toLowerCase() === currentWord) {
                     wordsTyped++;
                     updateProgress();

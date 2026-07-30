@@ -3,10 +3,18 @@
 // ==========================================
 
 export class Terminal {
-    constructor() {
+    constructor(audio = null) {
         this.output = document.getElementById('output');
         this.input = document.getElementById('command-input');
         this.statsBar = document.getElementById('stats-bar');
+        this.audio = audio;
+        
+        // Typing sound on keypress
+        if (this.input && this.audio) {
+            this.input.addEventListener('keydown', () => {
+                if (this.audio) this.audio.type();
+            });
+        }
     }
     
     print(text, type = '') {

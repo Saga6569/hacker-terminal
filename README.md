@@ -4,12 +4,13 @@
 
 ## 🎮 Gameplay
 
-You are a hacker operative with ROOT access. Hack servers, upgrade your hardware, build a botnet, join factions, deploy viruses, and conquer the digital world.
+You are a hacker operative with ROOT access. Hack servers, upgrade your hardware, build a botnet, join factions, deploy viruses, master skills, and conquer the digital world.
 
 ### Core Commands
 - `help` - Show all available commands
 - `status` - View player stats, hardware, botnet
 - `scan` - List hackable targets
+- `map` - ASCII network topology visualization
 - `hack <server>` - Attack a server with typing minigame
 - `upgrade <cpu|ram|network>` - Upgrade hardware
 - `buy <bot_type>` - Hire bots for passive income
@@ -17,6 +18,8 @@ You are a hacker operative with ROOT access. Hack servers, upgrade your hardware
 - `mission` - Current mission info
 - `achievements` - View achievement progress
 - `story` - Narrative overview
+- `skill [unlock <id>]` - Skill tree
+- `sound` - Toggle audio
 - `save` / `export` / `import <code>` - Save management
 - `clear` - Clear terminal
 
@@ -36,6 +39,20 @@ You are a hacker operative with ROOT access. Hack servers, upgrade your hardware
 - `virus create <id>` - Deploy a virus
 - `virus list` - Show active viruses
 
+### Skills (Skill Tree)
+- `skill` - View skill tree
+- `skill unlock <id>` - Purchase a skill
+
+Available skills:
+- **Fast Fingers** - Minigame time +20%
+- **Social Engineer** - Access to social servers
+- **Crypto Miner** - Passive income +15%
+- **Ghost Protocol** - Detection risk -50%
+- **DDoS Master** - Multi-target attacks
+- **Quantum Hacker** - Access quantum-core early
+- **AI Symbiosis** - Bot income doubled
+- **Digital God** - All stats +50%, secret ending
+
 ### Secret Commands 🤫
 Try these: `matrix`, `konami`, `self-destruct`, `hack the planet`, `hello friend`, `1337`, `godmode`
 
@@ -49,7 +66,10 @@ Try these: `matrix`, `konami`, `self-destruct`, `hack the planet`, `hello friend
 - **Black Market** - Sell stolen data for profit
 - **Factions** - Choose your path: Black Hat, White Hat, or Grey Hat
 - **Viruses** - Deploy malware for passive income
+- **Skill Tree** - 8 unlockable abilities
 - **Random Events** - FBI raids, zero-day exploits, darknet offers
+- **ASCII Map** - Visual network topology
+- **Synthesized Audio** - Web Audio API sounds (no external files)
 - **Secret Commands** - Hidden easter eggs
 
 ## 🚀 Quick Start
@@ -68,6 +88,7 @@ python3 -m http.server 8080
 
 - Vanilla HTML/CSS/JS
 - ES6 Modules
+- Web Audio API for synthesized sound effects
 - No frameworks needed
 - CRT effects via CSS
 
@@ -88,7 +109,10 @@ hacker-terminal/
     │   ├── AchievementSystem.js
     │   ├── MissionSystem.js
     │   ├── MinigameSystem.js
-    │   └── EventSystem.js
+    │   ├── EventSystem.js
+    │   ├── AudioSystem.js      # Synthesized sounds
+    │   ├── MapSystem.js        # ASCII network map
+    │   └── SkillTree.js        # Skill progression
     ├── modules/
     │   ├── BlackMarket.js
     │   ├── FactionSystem.js

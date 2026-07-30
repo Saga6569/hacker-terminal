@@ -11,9 +11,14 @@ export class GameState {
             upgrades: game.upgrades,
             storyProgress: game.storyProgress,
             sessionStats: game.sessionStats,
-            faction: game.faction,
-            inventory: game.inventory,
-            viruses: game.viruses,
+            faction: game.factions?.currentFaction?.id || null,
+            inventory: game.market?.serialize() || {},
+            viruses: game.viruses?.serialize() || [],
+            achievements: game.achievements?.serialize() || [],
+            missions: game.missions?.serialize()?.missions || [],
+            activeMission: game.missions?.serialize()?.active || null,
+            missionsCompleted: game.missions?.serialize()?.completedCount || 0,
+            skills: game.skills?.serialize() || {},
             timestamp: Date.now()
         };
         localStorage.setItem('hackerTerminal_v2_save', JSON.stringify(data));

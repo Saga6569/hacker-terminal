@@ -5,9 +5,10 @@
 import { ACHIEVEMENTS_DATA } from '../data/Constants.js';
 
 export class AchievementSystem {
-    constructor(game, terminal) {
+    constructor(game, terminal, audio = null) {
         this.game = game;
         this.terminal = terminal;
+        this.audio = audio;
         this.achievements = ACHIEVEMENTS_DATA.map(a => ({ ...a, unlocked: false }));
     }
     
@@ -18,6 +19,7 @@ export class AchievementSystem {
                 ach.unlocked = true;
                 newUnlocks.push(ach);
                 this.terminal.showAchievement(ach);
+                if (this.audio) this.audio.achievement();
             }
         });
         return newUnlocks;

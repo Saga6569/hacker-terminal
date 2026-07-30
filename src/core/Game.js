@@ -13,27 +13,41 @@ import { FactionSystem } from './modules/FactionSystem.js';
 import { VirusSystem } from './modules/VirusSystem.js';
 import { SecretCommands } from './modules/SecretCommands.js';
 import { SERVERS, BOT_TYPES, UPGRADES } from './data/Constants.js';
+import { AudioSystem } from './systems/AudioSystem.js';
+import { MapSystem } from './systems/MapSystem.js';
+import { SkillTree } from './systems/SkillTree.js';
 
 export class Game {
     constructor() {
-        this.terminal = new Terminal();
-        this.minigame = new MinigameSystem(this.terminal);
+        this.audio = new AudioSystem();
+        this.terminal = new Terminal(this.audio);
+        this.minigame = new MinigameSystem(this.terminal, this.audio);
         
         this.loadOrInit();
         
-        this.achievements = new AchievementSystem(this, this.terminal);
+        this.achievements = new AchievementSystem(this, this.terminal, this.audio);
         this.missions = new MissionSystem(this, this.terminal);
         this.events = new EventSystem(this, this.terminal);
         this.market = new BlackMarket(this, this.terminal);
         this.factions = new FactionSystem(this, this.terminal);
         this.viruses = new VirusSystem(this, this.terminal);
         this.secrets = new SecretCommands(this, this.terminal);
+        this.map = new MapSystem(this.servers, this.terminal);
+        this.skills = new SkillTree(this, this.terminal);
         
         this.isHacking = false;
         this._eventMultiplier = 1;
         this._creditMultiplier = 1;
         this._freeHack = false;
         this._pendingChoice = null;
+        this._skillBonuses = {
+            minigameTime: 1,
+            incomeMultiplier: 1,
+            detectionReduction: 1,
+            botIncomeMultiplier: 1,
+            maxBots: 0,
+            allStatsMultiplier: 1
+        };
         
         this.setupLoops();
         this.setupInput();
@@ -149,9 +163,11 @@ export class Game {
         if (saved) {
             this.achievements.load(saved.achievements);
             this.missions.load(saved.missions, saved.activeMission, saved.missionsCompleted);
-            this.market.load(saved.marketInventory);
+            this.market.load(saved.inventory);
             this.factions.load(saved.faction);
             this.viruses.load(saved.viruses);
+            this.skills.load(saved.skills);
+            this.audio.powerOn();
         }
         
         // Assign first mission if none
@@ -225,6 +241,17 @@ export class Game {
                 else if (args[0] === 'catalog') this.viruses.listTypes();
                 else this.showVirusHelp();
                 break;
+            case 'map':
+                this.map.render();
+                break;
+            case 'skill':
+                if (args[0] === 'unlock' && args[1]) this.skills.unlock(args[1]);
+                else this.skills.showTree();
+                break;
+            case 'sound':
+                const enabled = this.audio.toggle();
+                this.terminal.print(`Sound ${enabled ? 'enabled' : 'disabled'}.`, 'info');
+                break;
             case 'clear': this.terminal.clear(); break;
             default:
                 this.terminal.print(`Unknown command: ${command}. Type "help" for commands.`, 'error');
@@ -246,6 +273,9 @@ export class Game {
         this.terminal.print('  market <cmd>      Black market (prices/sell/inventory)');
         this.terminal.print('  faction <cmd>     Join/leave faction');
         this.terminal.print('  virus <cmd>       Deploy viruses (create/list/catalog)');
+        this.terminal.print('  map               ASCII network topology');
+        this.terminal.print('  skill [unlock <id>]  Skill tree');
+        this.terminal.print('  sound             Toggle audio');
         this.terminal.print('  save              Manual save');
         this.terminal.print('  export            Export save code');
         this.terminal.print('  import <code>     Import save code');
@@ -364,7 +394,7 @@ export class Game {
         this.terminal.print(`Target difficulty: ${Math.floor(server.difficulty * (this._eventMultiplier || 1))} | Your power: ${power.toFixed(1)}`, 'dim');
         this.terminal.print('');
         
-        const won = await this.minigame.run(server, this.player.hardware);
+        const won = await this.minigame.run(server, this.player.hardware, this._skillBonuses);
         
         if (won) {
             server.hacked = true;
@@ -379,10 +409,13 @@ export class Game {
             const newLevel = Math.floor(Math.sqrt(this.player.reputation / 10)) + 1;
             if (newLevel > this.player.level) {
                 this.player.level = newLevel;
+                this.audio.levelUp();
                 this.terminal.print('', 'success');
                 this.terminal.print(`★ LEVEL UP! You are now Level ${newLevel} ★`, 'success');
                 this.terminal.print('');
             }
+            
+            this.audio.success();
             
             // Stats
             const hackTime = Date.now() - hackStart;
@@ -425,6 +458,7 @@ export class Game {
             }
         } else {
             this.player.consecutiveSuccess = 0;
+            this.audio.failure();
             this.terminal.print('');
             this.terminal.print(`╔══ HACK FAILED ═══════════════════════════════════╗`, 'error');
             this.terminal.print(`  Countermeasures activated!`, 'error');
@@ -578,6 +612,8 @@ export class Game {
         let income = this.bots.reduce((sum, b) => sum + b.income, 0);
         income += this.viruses.getIncome();
         income *= this.factions.getIncomeMultiplier();
+        income *= (this._skillBonuses.incomeMultiplier || 1);
+        income *= (this._skillBonuses.allStatsMultiplier || 1);
         
         this.player.credits += income;
         this.player.totalEarned += income;
