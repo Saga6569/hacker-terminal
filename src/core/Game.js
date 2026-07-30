@@ -122,16 +122,39 @@ export class Game {
     
     setupInput() {
         const form = document.getElementById('input-form');
-        if (form) {
-            form.addEventListener('submit', (e) => {
+        const input = document.getElementById('command-input');
+        
+        if (!form || !input) {
+            console.error('Form or input not found!');
+            return;
+        }
+        
+        console.log('Setup input OK');
+        
+        form.addEventListener('submit', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            const cmd = this.terminal.getInputValue();
+            console.log('Submit:', cmd);
+            if (cmd) {
+                this.processCommand(cmd);
+                this.terminal.clearInput();
+            }
+            return false;
+        });
+        
+        // Fallback: Enter key on input
+        input.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
                 e.preventDefault();
                 const cmd = this.terminal.getInputValue();
+                console.log('Enter:', cmd);
                 if (cmd) {
                     this.processCommand(cmd);
                     this.terminal.clearInput();
                 }
-            });
-        }
+            }
+        });
     }
     
     // ========== WELCOME ==========

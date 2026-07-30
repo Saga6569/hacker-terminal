@@ -65,5 +65,17 @@
     </div>
     
     <script type="module" src="app.js"></script>
+    <script>
+        // Immediate test: show JS is working
+        document.addEventListener('DOMContentLoaded', () => {
+            const output = document.getElementById('output');
+            if (output) {
+                const testLine = document.createElement('div');
+                testLine.className = 'line success';
+                testLine.textContent = '[SYSTEM] Terminal initialized. Type "help" and press ENTER.';
+                output.appendChild(testLine);
+            }
+        });
+    </script>
 </body>
 </html>
