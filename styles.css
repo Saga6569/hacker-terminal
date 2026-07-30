@@ -1,0 +1,139 @@
+@import url('https://fonts.googleapis.com/css2?family=VT323&display=swap');
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    background: #000;
+    color: #0f0;
+    font-family: 'VT323', monospace;
+    font-size: 18px;
+    overflow: hidden;
+    height: 100vh;
+    width: 100vw;
+}
+
+#crt-container {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    background: #001000;
+    overflow: hidden;
+}
+
+#screen {
+    position: relative;
+    z-index: 2;
+    padding: 20px;
+    height: 100%;
+    overflow-y: auto;
+    text-shadow: 0 0 5px #0f0, 0 0 10px #0f0;
+}
+
+#header {
+    border-bottom: 1px solid #0f0;
+    padding-bottom: 10px;
+    margin-bottom: 20px;
+    font-size: 24px;
+}
+
+#output {
+    margin-bottom: 20px;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+}
+
+.line {
+    margin: 2px 0;
+    line-height: 1.4;
+}
+
+.line.success { color: #0f0; }
+.line.error { color: #f00; text-shadow: 0 0 5px #f00; }
+.line.info { color: #0ff; text-shadow: 0 0 5px #0ff; }
+.line.warning { color: #ff0; text-shadow: 0 0 5px #ff0; }
+
+#input-line {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.prompt {
+    color: #0f0;
+    white-space: nowrap;
+}
+
+#command-input {
+    background: transparent;
+    border: none;
+    color: #0f0;
+    font-family: 'VT323', monospace;
+    font-size: 18px;
+    outline: none;
+    flex: 1;
+    caret-color: transparent;
+}
+
+.cursor {
+    animation: blink 1s step-end infinite;
+}
+
+@keyframes blink {
+    50% { opacity: 0; }
+}
+
+.scanline {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: repeating-linear-gradient(
+        0deg,
+        rgba(0, 0, 0, 0.15),
+        rgba(0, 0, 0, 0.15) 1px,
+        transparent 1px,
+        transparent 2px
+    );
+    pointer-events: none;
+    z-index: 10;
+}
+
+.crt-flicker {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 255, 0, 0.02);
+    animation: flicker 0.15s infinite;
+    pointer-events: none;
+    z-index: 11;
+}
+
+@keyframes flicker {
+    0% { opacity: 0.9; }
+    50% { opacity: 1; }
+    100% { opacity: 0.9; }
+}
+
+.blink {
+    animation: blink 1s step-end infinite;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+    width: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: #001000;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #0f0;
+}
