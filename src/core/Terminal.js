@@ -131,6 +131,7 @@ export class Terminal {
     
     clearInput() {
         this.input.value = '';
+        this.focusInput();
     }
     
     showAchievement(achievement) {
