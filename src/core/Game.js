@@ -123,18 +123,24 @@ export class Game {
     setupInput() {
         const form = document.getElementById('input-form');
         const input = document.getElementById('command-input');
+        const debugStatus = document.getElementById('debug-status');
+        const debugInput = document.getElementById('debug-input');
+        const debugCmd = document.getElementById('debug-cmd');
+        
+        if (debugStatus) debugStatus.textContent = 'form:' + (form ? 'OK' : 'MISSING') + ' input:' + (input ? 'OK' : 'MISSING');
         
         if (!form || !input) {
             console.error('Form or input not found!');
+            if (debugStatus) debugStatus.textContent = 'ERROR: elements missing';
             return;
         }
-        
-        console.log('Setup input OK');
         
         form.addEventListener('submit', (e) => {
             e.preventDefault();
             e.stopPropagation();
             const cmd = this.terminal.getInputValue();
+            if (debugInput) debugInput.textContent = input.value;
+            if (debugCmd) debugCmd.textContent = cmd || '(empty)';
             console.log('Submit:', cmd);
             if (cmd) {
                 this.processCommand(cmd);
@@ -143,11 +149,12 @@ export class Game {
             return false;
         });
         
-        // Fallback: Enter key on input
         input.addEventListener('keydown', (e) => {
             if (e.key === 'Enter') {
                 e.preventDefault();
                 const cmd = this.terminal.getInputValue();
+                if (debugInput) debugInput.textContent = input.value;
+                if (debugCmd) debugCmd.textContent = cmd || '(empty)';
                 console.log('Enter:', cmd);
                 if (cmd) {
                     this.processCommand(cmd);
@@ -155,6 +162,8 @@ export class Game {
                 }
             }
         });
+        
+        if (debugStatus) debugStatus.textContent = 'READY';
     }
     
     // ========== WELCOME ==========

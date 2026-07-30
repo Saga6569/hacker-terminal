@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TEST - Hacker Terminal</title>
+    <style>
+        body { background: #000; color: #0f0; font-family: monospace; padding: 20px; }
+        #output { border: 1px solid #0f0; padding: 10px; min-height: 200px; margin-bottom: 10px; white-space: pre-wrap; }
+        input { background: #000; color: #0f0; border: 1px solid #0f0; padding: 5px; width: 300px; font-family: monospace; }
+        button { background: #0f0; color: #000; border: none; padding: 5px 10px; cursor: pointer; font-family: monospace; }
+        .line { margin: 2px 0; }
+        .error { color: #f00; }
+        .success { color: #0f0; }
+    </style>
+</head>
+<body>
+    <h2>🧪 TEST TERMINAL</h2>
+    <div id="output"></div>
+    <form id="test-form">
+        <span style="color: #0f0;">$</span>
+        <input type="text" id="test-input" placeholder="Type 'help' and press ENTER" autocomplete="off">
+        <button type="submit">SEND</button>
+    </form>
+    
+    <script>
+        const output = document.getElementById('output');
+        const form = document.getElementById('test-form');
+        const input = document.getElementById('test-input');
+        
+        function print(text, type = '') {
+            const line = document.createElement('div');
+            line.className = 'line ' + type;
+            line.textContent = text;
+            output.appendChild(line);
+        }
+        
+        print('[SYSTEM] Test terminal loaded', 'success');
+        print('Try typing "help" and pressing ENTER or clicking SEND');
+        
+        form.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const cmd = input.value.trim();
+            print('> ' + cmd);
+            
+            if (cmd === 'help') {
+                print('Available commands: help, test, clear', 'success');
+            } else if (cmd === 'test') {
+                print('Test OK! Everything works.', 'success');
+            } else if (cmd === 'clear') {
+                output.innerHTML = '';
+            } else if (cmd) {
+                print('Unknown command: ' + cmd, 'error');
+            }
+            
+            input.value = '';
+            input.focus();
+        });
+    </script>
+</body>
+</html>
