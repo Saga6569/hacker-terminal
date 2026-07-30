@@ -33,6 +33,27 @@ export class Terminal {
             });
         });
         
+        // Readable mode toggle
+        const readableBtn = document.getElementById('readable-toggle');
+        if (readableBtn) {
+            readableBtn.addEventListener('click', () => {
+                const current = document.documentElement.getAttribute('data-readable');
+                const next = current === 'true' ? 'false' : 'true';
+                document.documentElement.setAttribute('data-readable', next);
+                localStorage.setItem('hackerTerminal_readable', next);
+                readableBtn.style.background = next === 'true' ? 'var(--primary)' : 'transparent';
+                readableBtn.style.color = next === 'true' ? '#000' : 'var(--primary)';
+            });
+            
+            // Load saved
+            const savedReadable = localStorage.getItem('hackerTerminal_readable');
+            if (savedReadable === 'true') {
+                document.documentElement.setAttribute('data-readable', 'true');
+                readableBtn.style.background = 'var(--primary)';
+                readableBtn.style.color = '#000';
+            }
+        }
+        
         // Load saved theme
         const saved = localStorage.getItem('hackerTerminal_theme');
         if (saved) {

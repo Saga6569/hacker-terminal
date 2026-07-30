@@ -88,10 +88,32 @@ body {
     padding: 20px;
     height: 100%;
     overflow-y: auto;
-    text-shadow: 0 0 2px var(--primary), 0 0 8px var(--shadow), 0 0 16px var(--shadow);
+    text-shadow: 0 0 1px var(--primary);
     animation: textPulse 4s ease-in-out infinite;
     transform: scale(0.98);
     transform-origin: center;
+}
+
+/* Readable mode - no blur */
+[data-readable="true"] #screen {
+    text-shadow: none !important;
+    animation: none !important;
+    transform: none !important;
+}
+
+[data-readable="true"] .line {
+    text-shadow: none !important;
+}
+
+[data-readable="true"] .scanline,
+[data-readable="true"] .scanline-moving,
+[data-readable="true"] .crt-flicker,
+[data-readable="true"] .noise {
+    display: none !important;
+}
+
+[data-readable="true"] body {
+    font-size: 20px !important;
 }
 
 @keyframes textPulse {
