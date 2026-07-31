@@ -1,27 +1,33 @@
 // ==========================================
-// GAME - Main controller
+// GAME - Main controller (Uplink-style)
 // ==========================================
 
 import { GameState } from './core/GameState.js';
 import { Terminal } from './core/Terminal.js';
 import { AchievementSystem } from './systems/AchievementSystem.js';
 import { MissionSystem } from './systems/MissionSystem.js';
-import { MinigameSystem } from './systems/MinigameSystem.js';
 import { EventSystem } from './systems/EventSystem.js';
 import { BlackMarket } from './modules/BlackMarket.js';
 import { FactionSystem } from './modules/FactionSystem.js';
 import { VirusSystem } from './modules/VirusSystem.js';
 import { SecretCommands } from './modules/SecretCommands.js';
-import { SERVERS, BOT_TYPES, UPGRADES } from './data/Constants.js';
+import { SERVERS, BOT_TYPES, UPGRADES, SOFTWARE_TOOLS } from './data/Constants.js';
 import { AudioSystem } from './systems/AudioSystem.js';
 import { MapSystem } from './systems/MapSystem.js';
 import { SkillTree } from './systems/SkillTree.js';
+import { BounceSystem } from './systems/BounceSystem.js';
+import { TraceSystem } from './systems/TraceSystem.js';
+import { HackingSystem } from './systems/HackingSystem.js';
 
 export class Game {
     constructor() {
         this.audio = new AudioSystem();
         this.terminal = new Terminal(this.audio);
-        this.minigame = new MinigameSystem(this.terminal, this.audio);
+        
+        // New Uplink-style systems
+        this.bounce = new BounceSystem(this, this.terminal);
+        this.trace = new TraceSystem(this, this.terminal);
+        this.hacking = new HackingSystem(this, this.terminal, this.audio);
         
         this.loadOrInit();
         
@@ -36,6 +42,7 @@ export class Game {
         this.skills = new SkillTree(this, this.terminal);
         
         this.isHacking = false;
+        this.isGameOver = false;
         this._eventMultiplier = 1;
         this._creditMultiplier = 1;
         this._freeHack = false;
@@ -81,9 +88,14 @@ export class Game {
             this.inventory = saved.inventory || {};
             this.virusesData = saved.viruses || [];
             
-            // Offline earnings
+            // Load bounce chain
+            if (saved.bounceChain) {
+                this.bounce.load(saved.bounceChain);
+            }
+            
+            // Offline earnings (reduced — main income from missions now)
             const botIncome = this.bots.reduce((s, b) => s + b.income, 0);
-            const offlineEarnings = GameState.calculateOfflineEarnings(saved, botIncome);
+            const offlineEarnings = GameState.calculateOfflineEarnings(saved, botIncome * 0.2); // 20% of bot income
             if (offlineEarnings > 0) {
                 this.player.credits += offlineEarnings;
                 this.player.totalEarned += offlineEarnings;
@@ -105,15 +117,17 @@ export class Game {
     // ========== SETUP ==========
     
     setupLoops() {
-        // Bot income
+        // Bot income (reduced — supplemental only)
         setInterval(() => this.collectIncome(), 5000);
         
         // Autosave & checks
         setInterval(() => {
-            GameState.save(this);
-            this.achievements.check();
-            this.missions.checkLevel();
-            this.events.check();
+            if (!this.isGameOver) {
+                GameState.save(this);
+                this.achievements.check();
+                this.missions.checkLevel();
+                this.events.check();
+            }
         }, 30000);
         
         // Stats bar update
@@ -123,47 +137,31 @@ export class Game {
     setupInput() {
         const form = document.getElementById('input-form');
         const input = document.getElementById('command-input');
-        const debugStatus = document.getElementById('debug-status');
-        const debugInput = document.getElementById('debug-input');
-        const debugCmd = document.getElementById('debug-cmd');
-        
-        if (debugStatus) debugStatus.textContent = 'form:' + (form ? 'OK' : 'MISSING') + ' input:' + (input ? 'OK' : 'MISSING');
         
         if (!form || !input) {
             console.error('Form or input not found!');
-            if (debugStatus) debugStatus.textContent = 'ERROR: elements missing';
             return;
         }
         
         form.addEventListener('submit', (e) => {
             e.preventDefault();
-            e.stopPropagation();
             const cmd = this.terminal.getInputValue();
-            if (debugInput) debugInput.textContent = input.value;
-            if (debugCmd) debugCmd.textContent = cmd || '(empty)';
-            console.log('Submit:', cmd);
             if (cmd) {
                 this.processCommand(cmd);
                 this.terminal.clearInput();
             }
-            return false;
         });
         
         input.addEventListener('keydown', (e) => {
             if (e.key === 'Enter') {
                 e.preventDefault();
                 const cmd = this.terminal.getInputValue();
-                if (debugInput) debugInput.textContent = input.value;
-                if (debugCmd) debugCmd.textContent = cmd || '(empty)';
-                console.log('Enter:', cmd);
                 if (cmd) {
                     this.processCommand(cmd);
                     this.terminal.clearInput();
                 }
             }
         });
-        
-        if (debugStatus) debugStatus.textContent = 'READY';
     }
     
     // ========== WELCOME ==========
@@ -182,21 +180,23 @@ export class Game {
     ██╔══██║██╔══██║██║     ██╔══██║██╔══╝  ██╔══██╗
     ██║  ██║██║  ██║╚██████╗██║  ██║███████╗██║  ██║
     ╚═╝  ╚═╝╚═╝  ╚═╝ ╚═════╝╚═╝  ╚═╝╚══════╝╚═╝  ╚═╝
-    TERMINAL v2.0 // SYSTEM BREACH SIMULATOR
+    UPLINK-STYLE v3.0 // ONE MISTAKE = GAME OVER
         `;
         this.terminal.printArt(art, 'dim');
         this.terminal.print('╔════════════════════════════════════════════════╗', 'success');
-        this.terminal.print('║  Welcome back, operative. Your access level:   ║', 'success');
+        this.terminal.print('║  Welcome back, operative. Remember:            ║', 'success');
+        this.terminal.print('║  ONE SERIOUS MISTAKE = GAME OVER               ║', 'critical');
         this.terminal.print(`║  ${String(this.player.level).padStart(2, '0')}  |  REP: ${String(this.player.reputation).padStart(6, '0')}  |  ₿: ${String(this.player.credits).padStart(8, '0')}       ║`, 'success');
         this.terminal.print('╚════════════════════════════════════════════════╝', 'success');
         
         if (this._offlineEarnings > 0) {
             this.terminal.print(`💰 Offline earnings: +${this._offlineEarnings} ₿`, 'success');
-            this.terminal.print(`   Your bots worked while you were away.\n`, 'dim');
+            this.terminal.print(`   Bots earned while you were away.\n`, 'dim');
         }
         
         this.terminal.print('');
-        this.terminal.print('Type "help" for commands or "story" for narrative.\n');
+        this.terminal.print('CRITICAL: Always build a bounce chain before hacking!');
+        this.terminal.print('Type "help" for commands or "bounce show" to see your chain.\n');
         
         // Load subsystems from saved data
         const saved = GameState.load();
@@ -225,6 +225,11 @@ export class Game {
     // ========== COMMANDS ==========
     
     processCommand(cmd) {
+        if (this.isGameOver && cmd !== 'restart') {
+            this.terminal.print('Game over. Type "restart" to begin anew.', 'error');
+            return;
+        }
+        
         // Check for secret commands first
         if (this.secrets.tryCommand(cmd)) {
             return;
@@ -244,6 +249,25 @@ export class Game {
                 if (args[0]) this.hackServer(args[0]);
                 else this.terminal.print('Usage: hack <server_name>', 'error');
                 break;
+            case 'bounce':
+                if (args[0] === 'add' && args[1]) this.bounce.add(args[1]);
+                else if (args[0] === 'remove') this.bounce.remove(args[1] || null);
+                else if (args[0] === 'clear') this.bounce.clear();
+                else if (args[0] === 'show') this.bounce.showChain();
+                else this.showBounceHelp();
+                break;
+            case 'wipe':
+                if (args[0]) this.wipeLogs(args[0]);
+                else this.wipeAllLogs();
+                break;
+            case 'abort':
+                this.abortHack();
+                break;
+            case 'shop':
+                if (args[0] === 'list') this.showSoftwareShop();
+                else if (args[0] === 'buy' && args[1]) this.buySoftware(args[1]);
+                else this.showSoftwareShop();
+                break;
             case 'upgrade':
                 if (args[0]) this.upgradeHardware(args[0]);
                 else this.terminal.print('Usage: upgrade <cpu|ram|network>', 'error');
@@ -261,6 +285,9 @@ export class Game {
             case 'import':
                 if (args[0]) this.importSave(args[0]);
                 else this.terminal.print('Usage: import <save_code>', 'error');
+                break;
+            case 'restart':
+                this.restart();
                 break;
             // New commands
             case 'market':
@@ -316,19 +343,28 @@ export class Game {
     
     showHelp() {
         this.terminal.print('╔══ COMMAND LIST ═══════════════════════════════════════╗', 'info');
+        this.terminal.print('  CRITICAL COMMANDS:', 'critical');
+        this.terminal.print('  bounce add <srv>  Add server to proxy chain');
+        this.terminal.print('  bounce remove [srv] Remove from chain');
+        this.terminal.print('  bounce show       Show current chain');
+        this.terminal.print('  hack <server>     Attack target (build chain first!)');
+        this.terminal.print('  abort             Abort current hack');
+        this.terminal.print('  wipe <server>     Delete logs on server');
+        this.terminal.print('');
+        this.terminal.print('  GENERAL:', 'info');
         this.terminal.print('  help              Show this help');
-        this.terminal.print('  status            Player stats and hardware');
+        this.terminal.print('  status            Player stats');
         this.terminal.print('  scan              Scan network for targets');
-        this.terminal.print('  hack <server>     Attack target server');
-        this.terminal.print('  upgrade <item>    Upgrade hardware (cpu/ram/network)');
-        this.terminal.print('  buy <bot>         Hire bot for passive income');
+        this.terminal.print('  shop [buy <id>]   Software shop');
+        this.terminal.print('  upgrade <item>    Upgrade hardware');
+        this.terminal.print('  buy <bot>         Hire bot (supplemental income)');
         this.terminal.print('  bots              Show botnet status');
         this.terminal.print('  mission           Current mission info');
         this.terminal.print('  achievements      View achievement progress');
         this.terminal.print('  story             Narrative overview');
-        this.terminal.print('  market <cmd>      Black market (prices/sell/inventory)');
+        this.terminal.print('  market <cmd>      Black market');
         this.terminal.print('  faction <cmd>     Join/leave faction');
-        this.terminal.print('  virus <cmd>       Deploy viruses (create/list/catalog)');
+        this.terminal.print('  virus <cmd>       Deploy viruses');
         this.terminal.print('  map               ASCII network topology');
         this.terminal.print('  skill [unlock <id>]  Skill tree');
         this.terminal.print('  theme [name]      Change color theme');
@@ -336,10 +372,20 @@ export class Game {
         this.terminal.print('  save              Manual save');
         this.terminal.print('  export            Export save code');
         this.terminal.print('  import <code>     Import save code');
+        this.terminal.print('  restart           Start new game (after game over)');
         this.terminal.print('  clear             Clear terminal');
         this.terminal.print('╚═════════════════════════════════════════════════════╝', 'info');
         this.terminal.print('');
-        this.terminal.print('Try secret commands too... 🤫', 'dim');
+        this.terminal.print('⚠ RULE: Always use "bounce" before hacking hard targets!', 'critical');
+        this.terminal.print('⚠ RULE: Wipe logs after every hack!', 'critical');
+    }
+    
+    showBounceHelp() {
+        this.terminal.print('Bounce commands:', 'info');
+        this.terminal.print('  bounce add <server>    - Add hacked server to chain');
+        this.terminal.print('  bounce remove [server] - Remove from chain');
+        this.terminal.print('  bounce clear           - Clear entire chain');
+        this.terminal.print('  bounce show            - Show current chain', 'dim');
     }
     
     showMarketHelp() {
@@ -356,6 +402,45 @@ export class Game {
         this.terminal.print('  virus list        - Show active viruses');
     }
     
+    showSoftwareShop() {
+        this.terminal.print('╔══ SOFTWARE SHOP ═══════════════════════════════════╗', 'info');
+        Object.entries(SOFTWARE_TOOLS).forEach(([id, tool]) => {
+            const owned = this.inventory[id] ? '[OWNED]' : `[${tool.cost} ₿]`;
+            this.terminal.print(`  ${id.padEnd(20)} ${owned}`, 'info');
+            this.terminal.print(`     ${tool.description}`, 'dim');
+            this.terminal.print(`     Unlocks: ${tool.unlocks}`, 'dim');
+        });
+        this.terminal.print('╚════════════════════════════════════════════════════╝', 'info');
+        this.terminal.print('Use "shop buy <id>" to purchase.', 'dim');
+    }
+    
+    buySoftware(toolId) {
+        const tool = SOFTWARE_TOOLS[toolId];
+        if (!tool) {
+            this.terminal.print(`Unknown software: ${toolId}`, 'error');
+            return;
+        }
+        
+        if (this.inventory[toolId]) {
+            this.terminal.print(`You already own ${tool.name}.`, 'warning');
+            return;
+        }
+        
+        if (this.player.credits < tool.cost) {
+            this.terminal.print(`Insufficient funds. Need: ${tool.cost} ₿`, 'error');
+            return;
+        }
+        
+        this.player.credits -= tool.cost;
+        this.inventory[toolId] = tool;
+        
+        this.terminal.print(`✓ PURCHASED: ${tool.name}`, 'success');
+        this.terminal.print(`  ${tool.description}`, 'dim');
+        this.terminal.print(`  Now you can hack: ${tool.unlocks}`, 'success');
+        
+        GameState.save(this);
+    }
+    
     // ========== CORE GAMEPLAY ==========
     
     showStatus() {
@@ -367,18 +452,33 @@ export class Game {
             `  Hacks:       ${this.player.totalHacks}`,
             `  Consecutive: ${this.player.consecutiveSuccess}`,
             '╠══ HARDWARE ════════════════════════════════════════╣',
-            `  CPU:         Level ${this.player.hardware.cpu} (Next: ${this.upgrades.cpu.cost} ₿)`,
-            `  RAM:         Level ${this.player.hardware.ram} (Next: ${this.upgrades.ram.cost} ₿)`,
-            `  Network:     Level ${this.player.hardware.network} (Next: ${this.upgrades.network.cost} ₿)`,
-            '╠══ BOTNET ══════════════════════════════════════════╣',
-            `  Active Bots: ${this.bots.length}`,
-            `  Income:      ${this.bots.reduce((s, b) => s + b.income, 0)} ₿/5sec`,
+            `  CPU:         Level ${this.player.hardware.cpu}`,
+            `  RAM:         Level ${this.player.hardware.ram}`,
+            `  Network:     Level ${this.player.hardware.network}`,
+            '╠══ SOFTWARE ════════════════════════════════════════╣',
         ];
+        
+        const ownedTools = Object.keys(this.inventory);
+        if (ownedTools.length === 0) {
+            lines.push('  No software purchased. Visit "shop".');
+        } else {
+            ownedTools.forEach(id => {
+                lines.push(`  ✓ ${this.inventory[id].name}`);
+            });
+        }
+        
+        lines.push('╠══ BOUNCE CHAIN ════════════════════════════════════╣');
+        const chain = this.bounce.getChain();
+        if (chain.length === 0) {
+            lines.push('  [DIRECT - DANGEROUS]');
+        } else {
+            chain.forEach((hop, i) => lines.push(`  [${i + 1}] ${hop}`));
+            lines.push(`  Trace time: ${this.bounce.getTraceTime()}s`);
+        }
         
         if (this.viruses.deployed?.length > 0) {
             lines.push('╠══ VIRUSES ═════════════════════════════════════════╣');
             lines.push(`  Active: ${this.viruses.deployed.length}`);
-            lines.push(`  Income: ${this.viruses.getIncome()} ₿/5sec`);
         }
         
         if (this.factions.currentFaction) {
@@ -397,11 +497,13 @@ export class Game {
             const status = srv.hacked ? '[OWNED]' : '[ACTIVE]';
             const color = srv.hacked ? 'dim' : this.getDifficultyColor(srv.difficulty);
             const prefix = srv.hacked ? '  [✓]' : '  [ ]';
-            this.terminal.print(`${prefix} ${srv.name.padEnd(18)} | DIF: ${String(srv.difficulty).padStart(2)} | ${String(srv.reward).padStart(6)} ₿ ${status}`, color);
+            const toolRequired = srv.difficulty > 2 ? '[NEEDS TOOL]' : '';
+            this.terminal.print(`${prefix} ${srv.name.padEnd(18)} | DIF: ${String(srv.difficulty).padStart(2)} | ${String(srv.reward).padStart(6)} ₿ ${status} ${toolRequired}`, color);
         });
         
         this.terminal.print('');
         this.terminal.print('Use "hack <server_name>" to attack.', 'dim');
+        this.terminal.print('Build bounce chain first: "bounce add <server>"', 'warning');
     }
     
     getDifficultyColor(diff) {
@@ -413,7 +515,7 @@ export class Game {
     
     async hackServer(serverName) {
         if (this.isHacking) {
-            this.terminal.print('⚠ Already hacking! Wait...', 'error');
+            this.terminal.print('⚠ Already hacking! Use "abort" to cancel.', 'error');
             return;
         }
         
@@ -428,12 +530,15 @@ export class Game {
             return;
         }
         
-        const power = this.player.hardware.cpu * 1.2 + this.player.hardware.ram + this.player.hardware.network * 0.8;
-        const levelDiff = server.difficulty - this.player.level;
-        
-        if (levelDiff > 10) {
-            this.terminal.print(`ACCESS DENIED: Server too secure for your current level.`, 'error');
-            this.terminal.print(`Required level: ~${server.difficulty} | Your level: ${this.player.level}`, 'warning');
+        // Check bounce chain for hard servers
+        if (server.difficulty > 2 && this.bounce.getChain().length === 0) {
+            this.terminal.print('╔════════════════════════════════════════════════════╗', 'error');
+            this.terminal.print('║  ⚠ WARNING: NO BOUNCE CHAIN CONFIGURED ⚠          ║', 'error');
+            this.terminal.print('║                                                    ║', 'error');
+            this.terminal.print('║  Hard targets require proxy chain.                 ║', 'error');
+            this.terminal.print('║  Use: bounce add <hacked_server>                   ║', 'error');
+            this.terminal.print('║  Then: hack <target>                               ║', 'error');
+            this.terminal.print('╚════════════════════════════════════════════════════╝', 'error');
             return;
         }
         
@@ -447,93 +552,186 @@ export class Game {
         const hackStart = Date.now();
         
         this.terminal.print('');
-        this.terminal.print(`Initiating breach protocol on ${serverName.toUpperCase()}...`, 'critical');
-        this.terminal.print(`Target difficulty: ${Math.floor(server.difficulty * (this._eventMultiplier || 1))} | Your power: ${power.toFixed(1)}`, 'dim');
-        this.terminal.print('');
+        this.terminal.print(`Initiating breach on ${serverName.toUpperCase()}...`, 'critical');
+        
+        if (this.bounce.getChain().length > 0) {
+            this.terminal.print(`Routing through ${this.bounce.getChain().length} proxies...`, 'dim');
+        } else {
+            this.terminal.print('DIRECT CONNECTION — HIGH RISK', 'error');
+        }
         
         this.terminal.glitchScreen(300);
         
-        const won = await this.minigame.run(server, this.player.hardware, this._skillBonuses);
+        // Use new hacking system
+        const result = await this.hacking.start(server, this.bounce, this.trace, 
+            (reason) => this.triggerGameOver(reason)
+        );
         
-        if (won) {
-            server.hacked = true;
-            const reward = Math.floor(server.reward * (this._creditMultiplier || 1));
-            this.player.credits += reward;
-            this.player.totalEarned += reward;
-            this.player.totalHacks++;
-            this.player.reputation += server.difficulty * 15;
-            this.player.consecutiveSuccess++;
-            
-            // Level up
-            const newLevel = Math.floor(Math.sqrt(this.player.reputation / 10)) + 1;
-            if (newLevel > this.player.level) {
-                this.player.level = newLevel;
-                this.audio.levelUp();
-                this.terminal.print('', 'success');
-                this.terminal.print(`★ LEVEL UP! You are now Level ${newLevel} ★`, 'success');
-                this.terminal.print('');
-            }
-            
-            this.audio.success();
-            this.terminal.flashSuccess();
-            this.terminal.chromatic(400);
-            
-            // Stats
-            const hackTime = Date.now() - hackStart;
-            if (hackTime < this.sessionStats.fastestHack) {
-                this.sessionStats.fastestHack = hackTime;
-            }
-            
-            // Systems
-            this.missions.updateProgress('hack', server.name);
-            this.market.hackServer(server.name);
-            
-            // Detection risk from faction
-            const risk = this.factions.getDetectionRisk();
-            if (Math.random() < risk) {
-                this.terminal.print('⚠ DETECTED! Security traced your signature.', 'error');
-                this.player.reputation = Math.max(0, this.player.reputation - 10);
-            }
-            
-            this.terminal.print('');
-            this.terminal.print(`╔══ HACK SUCCESSFUL ═══════════════════════════════╗`, 'success');
-            this.terminal.print(`  Data extracted: ${(Math.random() * 100 + 50).toFixed(2)} TB`, 'success');
-            this.terminal.print(`  Reward: ${reward} ₿`, 'success');
-            this.terminal.print(`  Reputation +${server.difficulty * 15}`, 'success');
-            this.terminal.print(`  Time: ${(hackTime / 1000).toFixed(2)}s`, 'dim');
-            this.terminal.print(`╚══════════════════════════════════════════════════╝`, 'success');
-            
-            // Special messages
-            if (server.name === 'military-node') {
-                this.terminal.print('', 'critical');
-                this.terminal.print('WARNING: Counter-intrusion detected!', 'critical');
-                this.terminal.print('You have accessed CLASSIFIED data.', 'critical');
-            }
-            if (server.name === 'quantum-core') {
-                this.terminal.print('', 'critical');
-                this.terminal.print('═══════════════════════════════════════════════', 'critical');
-                this.terminal.print('  YOU HAVE BREACHED THE IMPOSSIBLE.', 'critical');
-                this.terminal.print('  The quantum core whispers secrets.', 'critical');
-                this.terminal.print('  You are a GOD in the machine.', 'critical');
-                this.terminal.print('═══════════════════════════════════════════════', 'critical');
-            }
+        // Check if game over was triggered during hack
+        if (this.isGameOver) {
+            return;
+        }
+        
+        if (result.success) {
+            await this.handleHackSuccess(server, hackStart);
         } else {
-            this.player.consecutiveSuccess = 0;
-            this.audio.failure();
-            this.terminal.flashError();
-            this.terminal.shakeScreen(500);
-            this.terminal.chromatic(600);
-            this.terminal.print(`╔══ HACK FAILED ═══════════════════════════════════╗`, 'error');
-            this.terminal.print(`  Countermeasures activated!`, 'error');
-            this.terminal.print(`  Security traced your location.`, 'error');
-            this.terminal.print(`  Upgrade hardware and try again.`, 'warning');
-            this.terminal.print(`╚══════════════════════════════════════════════════╝`, 'error');
+            await this.handleHackFailure(server, result);
         }
         
         this.isHacking = false;
         GameState.save(this);
         this.achievements.check();
         this.terminal.updateStats(this.player, this.bots);
+    }
+    
+    async handleHackSuccess(server, hackStart) {
+        server.hacked = true;
+        const reward = Math.floor(server.reward * (this._creditMultiplier || 1));
+        this.player.credits += reward;
+        this.player.totalEarned += reward;
+        this.player.totalHacks++;
+        this.player.reputation += server.difficulty * 15;
+        this.player.consecutiveSuccess++;
+        
+        // Level up
+        const newLevel = Math.floor(Math.sqrt(this.player.reputation / 10)) + 1;
+        if (newLevel > this.player.level) {
+            this.player.level = newLevel;
+            this.audio.levelUp();
+            this.terminal.print('', 'success');
+            this.terminal.print(`★ LEVEL UP! You are now Level ${newLevel} ★`, 'success');
+            this.terminal.print('');
+        }
+        
+        this.audio.success();
+        this.terminal.flashSuccess();
+        this.terminal.chromatic(400);
+        
+        const hackTime = Date.now() - hackStart;
+        if (hackTime < this.sessionStats.fastestHack) {
+            this.sessionStats.fastestHack = hackTime;
+        }
+        
+        this.missions.updateProgress('hack', server.name);
+        this.market.hackServer(server.name);
+        
+        this.terminal.print('');
+        this.terminal.print(`╔══ HACK SUCCESSFUL ═══════════════════════════════╗`, 'success');
+        this.terminal.print(`  Data extracted: ${(Math.random() * 100 + 50).toFixed(2)} TB`, 'success');
+        this.terminal.print(`  Reward: ${reward} ₿`, 'success');
+        this.terminal.print(`  Reputation +${server.difficulty * 15}`, 'success');
+        this.terminal.print(`  Time: ${(hackTime / 1000).toFixed(2)}s`, 'dim');
+        this.terminal.print(`╚══════════════════════════════════════════════════╝`, 'success');
+        
+        // URGENT: Remind to wipe logs
+        this.terminal.print('');
+        this.terminal.print('⚠ URGENT: Use "wipe" to clear your tracks!', 'critical');
+        this.terminal.print('⚠ Logs on bounce servers can incriminate you!', 'critical');
+        
+        // Special messages
+        if (server.name === 'military-node') {
+            this.terminal.print('', 'critical');
+            this.terminal.print('WARNING: Counter-intrusion detected!', 'critical');
+            this.terminal.print('You have accessed CLASSIFIED data.', 'critical');
+        }
+        if (server.name === 'quantum-core') {
+            this.terminal.print('', 'critical');
+            this.terminal.print('═══════════════════════════════════════════════', 'critical');
+            this.terminal.print('  YOU HAVE BREACHED THE IMPOSSIBLE.', 'critical');
+            this.terminal.print('  The quantum core whispers secrets.', 'critical');
+            this.terminal.print('  You are a GOD in the machine.', 'critical');
+            this.terminal.print('═══════════════════════════════════════════════', 'critical');
+        }
+    }
+    
+    async handleHackFailure(server, result) {
+        this.player.consecutiveSuccess = 0;
+        this.audio.failure();
+        this.terminal.flashError();
+        this.terminal.shakeScreen(500);
+        this.terminal.chromatic(600);
+        
+        if (result.detected && !result.aborted) {
+            // Trace was triggered
+            this.terminal.print(`╔══ HACK FAILED — TRACE ACTIVE ════════════════════╗`, 'error');
+            this.terminal.print(`  Countermeasures activated!`, 'error');
+            this.terminal.print(`  Security is tracing your connection!`, 'critical');
+            this.terminal.print(`  You have ${this.trace.getTimeRemaining()}s to escape!`, 'critical');
+            this.terminal.print(`╚══════════════════════════════════════════════════╝`, 'error');
+        } else if (result.aborted) {
+            this.terminal.print(`╔══ HACK ABORTED ══════════════════════════════════╗`, 'warning');
+            this.terminal.print(`  You disconnected before completion.`, 'warning');
+            this.terminal.print(`  No data extracted.`, 'dim');
+            this.terminal.print(`╚══════════════════════════════════════════════════╝`, 'warning');
+        } else {
+            this.terminal.print(`╔══ HACK FAILED ═══════════════════════════════════╗`, 'error');
+            this.terminal.print(`  Access denied.`, 'error');
+            this.terminal.print(`  Required tool missing or insufficient.`, 'warning');
+            this.terminal.print(`╚══════════════════════════════════════════════════╝`, 'error');
+        }
+    }
+    
+    abortHack() {
+        if (this.hacking.currentHack) {
+            this.hacking.abort();
+            this.trace.stop();
+            this.isHacking = false;
+        } else {
+            this.terminal.print('No active hack to abort.', 'dim');
+        }
+    }
+    
+    wipeLogs(serverName) {
+        const server = this.servers.find(s => s.name === serverName);
+        if (!server) {
+            this.terminal.print(`Server "${serverName}" not found.`, 'error');
+            return;
+        }
+        
+        if (!server.hacked) {
+            this.terminal.print(`Cannot wipe logs — server not compromised.`, 'error');
+            return;
+        }
+        
+        // Check if log deleter is owned
+        if (this.inventory.log_deleter) {
+            this.terminal.print(`[✓] Log Deleter Pro used. Logs on ${serverName} wiped instantly.`, 'success');
+        } else {
+            this.terminal.print(`[...] Manually wiping logs on ${serverName}...`, 'dim');
+            this.terminal.print(`[✓] Logs wiped (took longer without tool).`, 'success');
+        }
+        
+        // Mark server as "cleaned"
+        server.logsWiped = true;
+        this.terminal.print(`[✓] ${serverName} is clean.`, 'success');
+    }
+    
+    wipeAllLogs() {
+        const chain = this.bounce.getChain();
+        if (chain.length === 0) {
+            this.terminal.print('No bounce chain to wipe.', 'dim');
+            return;
+        }
+        
+        this.terminal.print('Wiping logs on all bounce servers...', 'warning');
+        
+        let cleaned = 0;
+        chain.forEach(serverName => {
+            const server = this.servers.find(s => s.name === serverName);
+            if (server) {
+                server.logsWiped = true;
+                cleaned++;
+                this.terminal.print(`  [✓] ${serverName}`, 'success');
+            }
+        });
+        
+        this.terminal.print(`\n[✓] ${cleaned} servers cleaned.`, 'success');
+        
+        // Check if trace can be stopped
+        if (this.trace.isActive()) {
+            this.trace.stop();
+            this.terminal.print('[✓] Trace aborted — no evidence left.', 'success');
+        }
     }
     
     upgradeHardware(item) {
@@ -579,7 +777,7 @@ export class Game {
         this.bots.push({ ...botType, type });
         
         this.terminal.print(`✓ RECRUITED: ${botType.name}`, 'success');
-        this.terminal.print(`  Income: +${botType.income} ₿/5sec`, 'info');
+        this.terminal.print(`  Income: +${botType.income} ₿/5sec (supplemental)`, 'info');
         this.terminal.print(`  ${botType.description}`, 'dim');
         
         this.missions.updateProgress('hire', type);
@@ -607,6 +805,7 @@ export class Game {
         this.terminal.print(`  Total bots: ${this.bots.length}`);
         this.terminal.print(`  Total income: ${this.bots.reduce((s, b) => s + b.income, 0)} ₿/5sec`);
         this.terminal.print('╚════════════════════════════════════════════════════╝', 'info');
+        this.terminal.print('Note: Bot income is supplemental. Main income from missions.', 'dim');
     }
     
     showAchievements() {
@@ -669,21 +868,53 @@ export class Game {
         this.terminal.print('╚════════════════════════════════════════════════════╝', 'critical');
     }
     
+    // ========== GAME OVER / RESTART ==========
+    
+    triggerGameOver(reason) {
+        this.isGameOver = true;
+        this.terminal.print('', 'critical');
+        this.terminal.print('╔════════════════════════════════════════════════════╗', 'critical');
+        this.terminal.print('║                 ☠ GAME OVER ☠                    ║', 'critical');
+        this.terminal.print('╚════════════════════════════════════════════════════╝', 'critical');
+        this.terminal.print('', 'critical');
+        this.terminal.print(`Reason: ${reason}`, 'critical');
+        this.terminal.print('', 'dim');
+        this.terminal.print(`Final stats:`, 'dim');
+        this.terminal.print(`  Level: ${this.player.level}`, 'dim');
+        this.terminal.print(`  Hacks: ${this.player.totalHacks}`, 'dim');
+        this.terminal.print(`  Total earned: ${this.player.totalEarned} ₿`, 'dim');
+        this.terminal.print(`  Reputation: ${this.player.reputation}`, 'dim');
+        this.terminal.print('', 'dim');
+        this.terminal.print('Type "restart" to begin a new life.', 'warning');
+        
+        // Clear save
+        GameState.clear();
+    }
+    
+    restart() {
+        this.isGameOver = false;
+        GameState.clear();
+        location.reload();
+    }
+    
     // ========== UTILS ==========
     
     collectIncome() {
+        if (this.isGameOver) return;
+        
+        // Reduced bot income — supplemental only
         let income = this.bots.reduce((sum, b) => sum + b.income, 0);
+        income *= 0.2; // Only 20% of listed income
         income += this.viruses.getIncome();
         income *= this.factions.getIncomeMultiplier();
-        income *= (this._skillBonuses.incomeMultiplier || 1);
-        income *= (this._skillBonuses.allStatsMultiplier || 1);
         
-        this.player.credits += income;
-        this.player.totalEarned += income;
+        this.player.credits += Math.floor(income);
+        this.player.totalEarned += Math.floor(income);
         this.terminal.updateStats(this.player, this.bots);
     }
     
     manualSave() {
+        if (this.isGameOver) return;
         GameState.save(this);
         this.terminal.print('✓ Game saved successfully.', 'success');
     }

@@ -61,6 +61,15 @@ export const MISSIONS_DATA = [
     { id: 12, title: 'The Ghost', desc: 'Reach level 15', type: 'level', target: 'any', required: 15, reward: 10000 }
 ];
 
+export const SOFTWARE_TOOLS = {
+    password_decoder: { id: 'password_decoder', name: 'Password Decoder v1.0', cost: 2000, description: 'Basic password cracking tool', unlocks: 'medium servers', level: 1 },
+    firewall_bypass: { id: 'firewall_bypass', name: 'Firewall Bypass v2.0', cost: 8000, description: 'Bypasses standard corporate firewalls', unlocks: 'hard servers', level: 1 },
+    proxy_bypass: { id: 'proxy_bypass', name: 'Proxy Bypass Pro', cost: 15000, description: 'Advanced proxy and IDS evasion', unlocks: 'extreme servers', level: 1 },
+    voice_analyzer: { id: 'voice_analyzer', name: 'Voice Analyzer', cost: 30000, description: 'Biometric authentication bypass', unlocks: 'military servers', level: 1 },
+    log_deleter: { id: 'log_deleter', name: 'Log Deleter Pro', cost: 5000, description: 'Instantly wipe logs on remote servers', level: 1 },
+    monitor: { id: 'monitor', name: 'Trace Monitor', cost: 12000, description: 'Early warning system for active traces', level: 1 }
+};
+
 export const HACK_WORDS = [
     'root', 'admin', 'system32', 'kernel', 'breach', 'cipher', 'encrypt', 
     'quantum', 'neural', 'cyber', 'packet', 'socket', 'daemon', 'firewall',

@@ -84,6 +84,15 @@ export class Terminal {
         line.textContent = text;
         this.output.appendChild(line);
         this.output.scrollTop = this.output.scrollHeight;
+        return line;
+    }
+    
+    updateLine(lineElement, text, type = '') {
+        if (lineElement) {
+            lineElement.textContent = text;
+            if (type) lineElement.className = `line ${type}`;
+            this.output.scrollTop = this.output.scrollHeight;
+        }
     }
     
     printSlow(text, type = '', delay = 15) {
