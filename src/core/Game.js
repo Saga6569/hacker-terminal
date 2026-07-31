@@ -31,6 +31,9 @@ export class Game {
         
         this.loadOrInit();
         
+        // Set up tab completion with server names
+        this.terminal.setServerNames(this.servers.map(s => s.name));
+        
         this.achievements = new AchievementSystem(this, this.terminal, this.audio);
         this.missions = new MissionSystem(this, this.terminal);
         this.events = new EventSystem(this, this.terminal);

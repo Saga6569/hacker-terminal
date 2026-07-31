@@ -12,6 +12,28 @@ export class Terminal {
         
         this.setupThemeSelector();
         this.setupMobileInput();
+        this.setupTabCompletion();
+        
+        // All available commands for tab completion
+        this.commands = [
+            'help', 'status', 'scan', 'hack', 'bounce', 'wipe', 'abort',
+            'shop', 'upgrade', 'buy', 'bots', 'achievements', 'mission',
+            'story', 'save', 'export', 'import', 'restart', 'clear',
+            'market', 'faction', 'virus', 'map', 'skill', 'sound', 'theme'
+        ];
+        
+        this.subcommands = {
+            'bounce': ['add', 'remove', 'clear', 'show'],
+            'shop': ['list', 'buy'],
+            'upgrade': ['cpu', 'ram', 'network'],
+            'market': ['prices', 'sell', 'inventory'],
+            'faction': ['join', 'leave', 'status'],
+            'virus': ['create', 'list', 'catalog'],
+            'skill': ['unlock'],
+            'theme': ['green', 'amber', 'cyan', 'red', 'white', 'pink']
+        };
+        
+        this.serverNames = [];
         
         // Typing sound on keypress
         if (this.input && this.audio) {
@@ -19,6 +41,11 @@ export class Terminal {
                 if (this.audio) this.audio.type();
             });
         }
+    }
+    
+    // Update server list for tab completion
+    setServerNames(names) {
+        this.serverNames = names;
     }
     
     setupThemeSelector() {
@@ -76,6 +103,117 @@ export class Terminal {
                 this.focusInput();
             }
         });
+    }
+    
+    setupTabCompletion() {
+        if (!this.input) return;
+        
+        this.input.addEventListener('keydown', (e) => {
+            if (e.key === 'Tab') {
+                e.preventDefault();
+                this.handleTabCompletion();
+            }
+        });
+    }
+    
+    handleTabCompletion() {
+        const value = this.input.value.trim();
+        if (!value) return;
+        
+        const parts = value.split(' ');
+        const lastPart = parts[parts.length - 1];
+        
+        // Determine what to complete based on position
+        let candidates = [];
+        
+        if (parts.length === 1) {
+            // Completing a command
+            candidates = this.commands.filter(cmd => cmd.startsWith(lastPart));
+        } else if (parts.length === 2) {
+            // Completing subcommand or server name
+            const cmd = parts[0];
+            
+            if (this.subcommands[cmd]) {
+                candidates = this.subcommands[cmd].filter(sc => sc.startsWith(lastPart));
+            }
+            
+            // Also add server names for commands that need them
+            if (['hack', 'bounce', 'wipe'].includes(cmd)) {
+                const serverMatches = this.serverNames.filter(s => s.startsWith(lastPart));
+                candidates = [...candidates, ...serverMatches];
+            }
+            
+            // Add shop items for 'shop buy'
+            if (cmd === 'shop' || cmd === 'buy') {
+                const tools = ['password_decoder', 'firewall_bypass', 'proxy_bypass', 
+                              'voice_analyzer', 'log_deleter', 'monitor',
+                              'script_kiddie', 'hacktivist', 'black_hat'];
+                candidates = [...candidates, ...tools.filter(t => t.startsWith(lastPart))];
+            }
+        } else if (parts.length === 3) {
+            // For commands like 'bounce add <server>' or 'shop buy <tool>'
+            const cmd = parts[0];
+            const sub = parts[1];
+            
+            if ((cmd === 'bounce' && sub === 'add') || 
+                (cmd === 'hack') || 
+                (cmd === 'wipe')) {
+                candidates = this.serverNames.filter(s => s.startsWith(lastPart));
+            }
+            
+            if (cmd === 'shop' && sub === 'buy') {
+                const tools = ['password_decoder', 'firewall_bypass', 'proxy_bypass', 
+                              'voice_analyzer', 'log_deleter', 'monitor'];
+                candidates = tools.filter(t => t.startsWith(lastPart));
+            }
+            
+            if (cmd === 'upgrade') {
+                candidates = ['cpu', 'ram', 'network'].filter(u => u.startsWith(lastPart));
+            }
+            
+            if (cmd === 'buy') {
+                candidates = ['script_kiddie', 'hacktivist', 'black_hat'].filter(b => b.startsWith(lastPart));
+            }
+            
+            if (cmd === 'theme') {
+                candidates = ['green', 'amber', 'cyan', 'red', 'white', 'pink'].filter(t => t.startsWith(lastPart));
+            }
+        }
+        
+        // Remove duplicates
+        candidates = [...new Set(candidates)];
+        
+        if (candidates.length === 1) {
+            // Single match — complete it
+            parts[parts.length - 1] = candidates[0];
+            this.input.value = parts.join(' ') + ' ';
+            if (this.audio) this.audio.type();
+        } else if (candidates.length > 1) {
+            // Multiple matches — show options
+            const prefix = this.findCommonPrefix(candidates);
+            if (prefix.length > lastPart.length) {
+                // Complete to common prefix
+                parts[parts.length - 1] = prefix;
+                this.input.value = parts.join(' ');
+                if (this.audio) this.audio.type();
+            }
+            this.print(`  ${candidates.join('  ')}`, 'dim');
+        }
+        
+        // Keep focus
+        this.focusInput();
+    }
+    
+    findCommonPrefix(strings) {
+        if (strings.length === 0) return '';
+        let prefix = strings[0];
+        for (let i = 1; i < strings.length; i++) {
+            while (!strings[i].startsWith(prefix)) {
+                prefix = prefix.slice(0, -1);
+                if (prefix === '') return '';
+            }
+        }
+        return prefix;
     }
     
     print(text, type = '') {
